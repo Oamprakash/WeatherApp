@@ -8,6 +8,8 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
@@ -18,10 +20,21 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideWeatherApi(): WeatherApi {
+    fun provideOkHttpClient(): okhttp3.OkHttpClient {
+        return OkHttpClient.Builder()
+            .addInterceptor(HttpLoggingInterceptor().apply {
+                setLevel(HttpLoggingInterceptor.Level.BODY)
+            })
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideWeatherApi(client: OkHttpClient): WeatherApi {
         return Retrofit.Builder()
             .baseUrl("https://api.openweathermap.org/data/2.5/")
             .addConverterFactory(GsonConverterFactory.create())
+            .client(client)
             .build()
             .create(WeatherApi::class.java)
     }

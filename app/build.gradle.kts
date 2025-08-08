@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -9,6 +11,26 @@ plugins {
 //val apiKey by lazy {
 //    project.findProperty("OPEN_WEATHER_API_KEY") as String
 //}
+// Create a new Properties object
+val localProperties = Properties()
+
+// Get the root project's directory
+val localPropertiesFile = rootProject.file("local.properties") // or project.file("local.properties") if in project-level build.gradle and you want it specific to that project. For Android app modules, rootProject.file() is common.
+
+// Check if the local.properties file exists
+if (localPropertiesFile.exists()) {
+    // Load the properties from the file
+    localPropertiesFile.inputStream().use { input ->
+        localProperties.load(input)
+    }
+} else {
+    // Optionally, handle the case where the file doesn't exist (e.g., provide defaults or throw an error)
+    // For CI environments, you might set these via environment variables instead [1]
+    println("Warning: local.properties file not found. Using default values or environment variables if available.")
+}
+
+// Access the properties by their key
+val apiKey: String? = localProperties.getProperty("OPEN_WEATHER_API_KEY")
 
 
 android {
@@ -25,6 +47,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
 //        buildConfigField("String", "OPEN_WEATHER_API_KEY", "\"$apiKey\"")
+        buildConfigField("String", "OPEN_WEATHER_API_KEY", "\"${apiKey ?: "DEFAULT_API_KEY_IF_MISSING"}\"")
     }
 
     buildTypes {
@@ -45,6 +68,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
