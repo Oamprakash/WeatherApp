@@ -1,5 +1,6 @@
 package com.oam.weatherapp.data.remote
 
+import com.oam.weatherapp.data.model.ForecastDto
 import com.oam.weatherapp.data.model.WeatherDto
 import retrofit2.http.GET
 import retrofit2.http.Query
@@ -11,4 +12,11 @@ interface WeatherApi {
         @Query("appid") apiKey: String,
         @Query("units") units: String = "metric"
     ): WeatherDto
+
+    @GET("forecast")
+    suspend fun get5DayForecast(
+        @Query("q") city: String,
+        @Query("appid") apiKey: String,
+        @Query("units") units: String = "metric"
+    ): ForecastDto
 }

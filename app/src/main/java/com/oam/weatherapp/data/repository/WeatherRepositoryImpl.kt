@@ -1,15 +1,24 @@
 package com.oam.weatherapp.data.repository
 
 import com.oam.weatherapp.BuildConfig
+import com.oam.weatherapp.data.local.dao.WeatherDao
+import com.oam.weatherapp.data.local.entity.toDomain
+import com.oam.weatherapp.data.local.entity.toEntity
+import com.oam.weatherapp.data.mapper.toDomainList
 import com.oam.weatherapp.data.remote.WeatherApi
+import com.oam.weatherapp.domain.model.ForecastDay
 import com.oam.weatherapp.domain.model.WeatherInfo
 import com.oam.weatherapp.domain.repository.WeatherRepository
+import com.oam.weatherapp.util.Resource
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
-import java.util.Properties
+import kotlinx.coroutines.flow.map
+import javax.inject.Inject
 
-class WeatherRepositoryImpl(
-    private val api: WeatherApi
+class WeatherRepositoryImpl @Inject constructor(
+    private val api: WeatherApi,
+    private val forecastDao: WeatherDao
 ) : WeatherRepository {
 
     val apiKey = BuildConfig.OPEN_WEATHER_API_KEY
@@ -35,5 +44,35 @@ class WeatherRepositoryImpl(
                 }
             }
         }
+    }
+
+    // New: get forecast with caching
+    override suspend fun getForecast(city: String): Flow<Resource<List<ForecastDay>>> = flow {
+        emit(Resource.Loading())
+
+        try {
+            // call remote
+            val dto = api.get5DayForecast(city = city, apiKey = BuildConfig.OPEN_WEATHER_API_KEY, units = "metric")
+            val domainList = dto.toDomainList()
+
+            // save to DB (replace city's old forecast)
+            forecastDao.clearForecastForCity(city)
+            forecastDao.insertForecast(domainList.map { it.toEntity(city) })
+
+            emit(Resource.Success(domainList))
+        } catch (e: Exception) {
+            // on error, try to return cached data
+            val cached = forecastDao.getForecastForCity(city).firstOrNull()?.map { it.toDomain() }
+            if (!cached.isNullOrEmpty()) {
+                emit(Resource.Success(cached))
+            } else {
+                emit(Resource.Error(e.localizedMessage ?: "Could not fetch forecast"))
+            }
+        }
+    }
+
+    // also expose a flow backed by DB for live updates (if desired)
+    override fun getCachedForecastFlow(city: String): Flow<List<ForecastDay>> {
+        return forecastDao.getForecastForCity(city).map { list -> list.map { it.toDomain() } }
     }
 }

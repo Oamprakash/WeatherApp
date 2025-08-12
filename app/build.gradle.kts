@@ -98,8 +98,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
 
     // Hilt (if used)
-    implementation("com.google.dagger:hilt-android:2.51")
-    kapt("com.google.dagger:hilt-compiler:2.51")
+    implementation("com.google.dagger:hilt-android:2.52")
+    kapt(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.lifecycle.viewmodel.compose)
 
@@ -108,6 +108,11 @@ dependencies {
 
     // Location (if needed)
     implementation("com.google.android.gms:play-services-location:21.0.1")
+
+    // Room
+    implementation(libs.androidx.room.runtime)
+    kapt("androidx.room:room-compiler:2.7.2")
+    implementation(libs.androidx.room.ktx) // for coroutines/Flow support
 
     // Testing
     testImplementation("junit:junit:4.13.2")
