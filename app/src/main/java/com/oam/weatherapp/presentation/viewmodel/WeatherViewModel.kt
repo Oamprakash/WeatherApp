@@ -46,12 +46,12 @@ class WeatherViewModel @Inject constructor(
     }
 
     fun loadWeather(city: String) {
-//        val cachedData = weatherDao.getWeather(city)
+//        val cachedData = forecastDao.getWeather(city)
 //        Log.d("WeatherRepo", "Loaded from DB: $cachedData")
         viewModelScope.launch {
             getWeatherUseCase(city)
                 .onStart { _uiState.value = WeatherUiState.Loading }
-                .catch { e -> _uiState.value = WeatherUiState.Error(e.message ?: "Unknown error")
+                .catch { e -> //_uiState.value = WeatherUiState.Error(e.message ?: "Unknown error")
                 println("oam e "+e.message)
                 }
                 .collectLatest { weather ->
@@ -63,6 +63,9 @@ class WeatherViewModel @Inject constructor(
         // fetch forecast in parallel
         viewModelScope.launch {
             getForecastUseCase(city)
+                .onStart { _forecastState.value = Resource.Loading() }
+                .catch { e -> _forecastState.value = Resource.Error(e.message ?: "Unknown error")
+                    println("oam e "+e.message) }
                 .collectLatest { resource ->
                     _forecastState.value = resource
                 }

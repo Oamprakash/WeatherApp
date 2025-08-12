@@ -4,9 +4,9 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.oam.weatherapp.domain.model.ForecastDay
 
-@Entity(tableName = "forecast_table")
+@Entity(tableName = "forecast_table",  primaryKeys = ["city", "timestamp"])
 data class ForecastEntity(
-    @PrimaryKey val timestamp: Long,
+    val timestamp: Long,
     val city: String,
     val temperature: Double,
     val description: String,
@@ -18,7 +18,7 @@ fun ForecastEntity.toDomain(): ForecastDay {
         timestamp = timestamp,
         temperature = temperature,
         description = description,
-        icon = icon
+        icon = icon,
     )
 }
 

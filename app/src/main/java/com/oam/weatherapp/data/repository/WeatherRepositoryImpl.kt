@@ -18,20 +18,25 @@ import javax.inject.Inject
 
 class WeatherRepositoryImpl @Inject constructor(
     private val api: WeatherApi,
-    private val forecastDao: WeatherDao
+    private val weatherDao: WeatherDao
 ) : WeatherRepository {
 
     val apiKey = BuildConfig.OPEN_WEATHER_API_KEY
 //    val apiKey: String? = Properties().getProperty("OPEN_WEATHER_API_KEY")
 
     override suspend fun getWeatherData(city: String): Flow<WeatherInfo> = flow {
-        apiKey.let { key ->
-            api.getWeatherByCity(city, key).run { // 'this' inside run refers to the response
-                main.temp.let { temp ->
-                    name.let { cityName ->
-                        val weatherDescription = weather.firstOrNull()?.description ?: ""
-                        emit(
-                            WeatherInfo(
+        // Try reading from DB first
+        val cached = weatherDao.getWeatherForCity(city).firstOrNull()?.toDomain()
+        if (cached != null) emit(cached)
+
+        try {
+            apiKey.let { key ->
+                api.getWeatherByCity(city, key).run { // 'this' inside run refers to the response
+                    main.temp.let { temp ->
+                        name.let { cityName ->
+                            val weatherDescription = weather.firstOrNull()?.description ?: ""
+//                        emit(
+                            val weatherInfo = WeatherInfo(
                                 temperature = temp,
                                 description = weatherDescription,
                                 cityName = cityName,
@@ -39,40 +44,72 @@ class WeatherRepositoryImpl @Inject constructor(
                                     "https://openweathermap.org/img/wn/$iconId@2x.png" // Example URL structure
                                 } ?: "" // Default or placeholder if icon is not available
                             )
-                        )
+//                        )
+                            emit(weatherInfo)
+                            weatherDao.insertWeather(weatherInfo.toEntity(cityName))
+                        }
                     }
                 }
             }
+        }catch (e: Exception){
+            if (cached==null) {
+//                emit(Resource.Error(e.localizedMessage ?: "Could not fetch forecast"))
+            }
         }
+
+
+
     }
 
     // New: get forecast with caching
     override suspend fun getForecast(city: String): Flow<Resource<List<ForecastDay>>> = flow {
-        emit(Resource.Loading())
+        // 1️⃣ Emit loading state
+//        emit(Resource.Loading())
 
+        // 2️⃣ Get cached data first
+        val cachedData = weatherDao.getForecastForCity(city)
+            .firstOrNull()
+            ?.map { it.toDomain() }
+
+        if (cachedData != null) {
+            emit(Resource.Success(cachedData)) // Show cached immediately
+            println("oam cached $cachedData")
+        }else{
+            println("oam empty")
+        }
+
+        // 3️⃣ Try fetching fresh data from API
         try {
-            // call remote
-            val dto = api.get5DayForecast(city = city, apiKey = BuildConfig.OPEN_WEATHER_API_KEY, units = "metric")
+            val dto = api.get5DayForecast(
+                city = city,
+                apiKey = BuildConfig.OPEN_WEATHER_API_KEY,
+                units = "metric"
+            )
             val domainList = dto.toDomainList()
 
-            // save to DB (replace city's old forecast)
-            forecastDao.clearForecastForCity(city)
-            forecastDao.insertForecast(domainList.map { it.toEntity(city) })
+            // 4️⃣ Save to DB
+//            weatherDao.clearForecastForCity(city)
+            weatherDao.insertForecast(domainList.map { it.toEntity(city) })
 
+            // 5️⃣ Emit fresh data
             emit(Resource.Success(domainList))
+
+            val cachedData = weatherDao.getForecastForCity(city)
+                .firstOrNull()
+                ?.map { it.toDomain() }
+            println("oam cached2 $cachedData")
+
         } catch (e: Exception) {
-            // on error, try to return cached data
-            val cached = forecastDao.getForecastForCity(city).firstOrNull()?.map { it.toDomain() }
-            if (!cached.isNullOrEmpty()) {
-                emit(Resource.Success(cached))
-            } else {
+            // 6️⃣ If network fails and no cached data was emitted, show error
+            if (cachedData.isNullOrEmpty()) {
                 emit(Resource.Error(e.localizedMessage ?: "Could not fetch forecast"))
             }
         }
     }
 
+
     // also expose a flow backed by DB for live updates (if desired)
     override fun getCachedForecastFlow(city: String): Flow<List<ForecastDay>> {
-        return forecastDao.getForecastForCity(city).map { list -> list.map { it.toDomain() } }
+        return weatherDao.getForecastForCity(city).map { list -> list.map { it.toDomain() } }
     }
 }

@@ -66,10 +66,10 @@ abstract class AppModule {
         @Singleton
         fun provideWeatherDatabase(@ApplicationContext context: Context): WeatherDatabase {
             return Room.databaseBuilder(
-                context.applicationContext,
-                WeatherDatabase::class.java,
-                "weather_db"
-            ).build()
+                        context.applicationContext,
+                        WeatherDatabase::class.java,
+                        "weather_db"
+                    ).fallbackToDestructiveMigration(true).build()
         }
 
         /**
