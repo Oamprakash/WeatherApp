@@ -1,5 +1,6 @@
 package com.oam.weatherapp.data.repository
 
+import android.annotation.SuppressLint
 import com.oam.weatherapp.BuildConfig
 import com.oam.weatherapp.data.local.dao.WeatherDao
 import com.oam.weatherapp.data.local.entity.toDomain
@@ -26,10 +27,11 @@ class WeatherRepositoryImpl @Inject constructor(
     private val CACHE_DURATION = 60 * 60 * 1000L // 1 hour in milliseconds
 
 
+    @SuppressLint("SuspiciousIndentation")
     override suspend fun getWeatherData(city: String): Flow<WeatherInfo> = flow {
         // Try reading from DB first
-        val cached = weatherDao.getWeatherForCity(city).firstOrNull()?.toDomain()
-        if (cached != null )
+            val cached = weatherDao.getWeatherForCity(city).firstOrNull()?.toDomain()
+            if (cached != null )
             emit(cached)
             println("oam cached weather $cached")
             try {
