@@ -8,6 +8,7 @@ fun WeatherDto.toWeatherInfo(): WeatherInfo {
         cityName = name,
         temperature = main.temp,
         description = weather.firstOrNull()?.description ?: "No description",
-        iconUrl = "https://openweathermap.org/img/wn/${weather.firstOrNull()?.icon}@2x.png"
+        iconUrl = "https://openweathermap.org/img/wn/${weather.firstOrNull()?.icon}@2x.png",
+        lastUpdated = System.currentTimeMillis()
     )
 }

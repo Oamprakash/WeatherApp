@@ -4,5 +4,6 @@ data class WeatherInfo(
     val cityName: String,
     val temperature: Double,
     val description: String,
-    val iconUrl: String
+    val iconUrl: String,
+    val lastUpdated: Long
 )

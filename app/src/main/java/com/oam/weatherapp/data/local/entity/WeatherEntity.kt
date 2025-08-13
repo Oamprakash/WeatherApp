@@ -20,7 +20,8 @@ fun WeatherEntity.toDomain(): WeatherInfo {
         cityName = cityName,
         temperature = temperature,
         description = description,
-        iconUrl = icon
+        iconUrl = icon,
+        lastUpdated = lastUpdated
     )
 }
 
@@ -30,6 +31,6 @@ fun WeatherInfo.toEntity(city: String): WeatherEntity {
         description = description,
         icon = iconUrl,
         cityName = city,
-        lastUpdated = TODO()
+        lastUpdated = lastUpdated
     )
 }

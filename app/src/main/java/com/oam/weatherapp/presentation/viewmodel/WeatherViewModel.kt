@@ -65,7 +65,7 @@ class WeatherViewModel @Inject constructor(
             getForecastUseCase(city)
                 .onStart { _forecastState.value = Resource.Loading() }
                 .catch { e -> _forecastState.value = Resource.Error(e.message ?: "Unknown error")
-                    println("oam e "+e.message) }
+                    println("oam e "+e.localizedMessage) }
                 .collectLatest { resource ->
                     _forecastState.value = resource
                 }

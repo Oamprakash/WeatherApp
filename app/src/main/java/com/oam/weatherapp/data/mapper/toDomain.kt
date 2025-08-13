@@ -10,7 +10,8 @@ fun ForecastItemDto.toDomain(): ForecastDay {
         timestamp = dt,
         temperature = main.temp,
         description = weather.firstOrNull()?.description ?: "N/A",
-        icon = weather.firstOrNull()?.icon
+        icon = weather.firstOrNull()?.icon,
+        lastUpdated = dt
     )
 }
 
