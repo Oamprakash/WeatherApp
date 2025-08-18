@@ -78,9 +78,9 @@ fun WeatherScreen(
                 }
 
             is WeatherUiState.Success -> {
-                Text("City: ${(uiState as WeatherUiState.Success).weatherInfo.cityName}")
-                Text("Temperature: ${(uiState as WeatherUiState.Success).weatherInfo.temperature}°C")
-                Text("Condition: ${(uiState as WeatherUiState.Success).weatherInfo.description}")
+                Text("City: ${(uiState as WeatherUiState.Success).weatherInfo?.cityName}")
+                Text("Temperature: ${(uiState as WeatherUiState.Success).weatherInfo?.temperature}°C")
+                Text("Condition: ${(uiState as WeatherUiState.Success).weatherInfo?.description}")
             }
         }
 

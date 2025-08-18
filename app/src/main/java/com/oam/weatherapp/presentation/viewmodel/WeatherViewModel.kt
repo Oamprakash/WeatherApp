@@ -1,11 +1,12 @@
 package com.oam.weatherapp.presentation.viewmodel
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.oam.weatherapp.data.local.entity.WeatherEntity
 import com.oam.weatherapp.domain.model.ForecastDay
 import com.oam.weatherapp.domain.usecase.GetForecastUseCase
 import com.oam.weatherapp.domain.usecase.GetWeatherUseCase
+import com.oam.weatherapp.presentation.uistate.ForecastUiState
 import com.oam.weatherapp.presentation.uistate.WeatherUiState
 import com.oam.weatherapp.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -46,8 +47,29 @@ class WeatherViewModel @Inject constructor(
     }
 
     fun loadWeather(city: String) {
-//        val cachedData = forecastDao.getWeather(city)
-//        Log.d("WeatherRepo", "Loaded from DB: $cachedData")
+        viewModelScope.launch {
+            getWeatherUseCase(city).collect { result ->
+                _uiState.value = when (result) {
+                    is Resource.Loading<*> -> WeatherUiState.Loading
+                    is Resource.Success<*> -> WeatherUiState.Success(result.data)
+                    else -> WeatherUiState.Error(result.toString())
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            getForecastUseCase(city).collect { result ->
+                _forecastState.value = when (result) {
+                    is Resource.Loading -> Resource.Loading()
+                    is Resource.Success -> result
+                    is Resource.Error -> Resource.Error(result.message ?: "Unknown error")
+                }
+            }
+        }
+    }
+
+
+    fun loadWeather1(city: String) {
         viewModelScope.launch {
             getWeatherUseCase(city)
                 .onStart { _uiState.value = WeatherUiState.Loading }
@@ -55,7 +77,7 @@ class WeatherViewModel @Inject constructor(
                 println("oam e "+e.message)
                 }
                 .collectLatest { weather ->
-                    _uiState.value = WeatherUiState.Success(weather)
+//                    _uiState.value = WeatherUiState.Success(weather)
                     println("oam "+weather.toString() + "")
                 }
         }
@@ -70,5 +92,15 @@ class WeatherViewModel @Inject constructor(
                     _forecastState.value = resource
                 }
         }
+
+            viewModelScope.launch {
+                getForecastUseCase(city).collect { result ->
+                    _forecastState.value = when (result) {
+                        is Resource.Loading -> Resource.Loading()
+                        is Resource.Success -> result
+                        is Resource.Error -> Resource.Error(result.message ?: "Unknown error")
+                    }
+                }
+            }
     }
 }
