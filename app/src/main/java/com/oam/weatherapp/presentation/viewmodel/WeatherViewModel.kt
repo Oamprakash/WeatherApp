@@ -1,7 +1,16 @@
 package com.oam.weatherapp.presentation.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
+import com.oam.weatherapp.BuildConfig
 import com.oam.weatherapp.data.local.entity.WeatherEntity
 import com.oam.weatherapp.domain.model.ForecastDay
 import com.oam.weatherapp.domain.usecase.GetForecastUseCase
@@ -9,7 +18,10 @@ import com.oam.weatherapp.domain.usecase.GetWeatherUseCase
 import com.oam.weatherapp.presentation.uistate.ForecastUiState
 import com.oam.weatherapp.presentation.uistate.WeatherUiState
 import com.oam.weatherapp.util.Resource
+import com.oam.weatherapp.data.work.WeatherSyncWorker
+import com.oam.weatherapp.util.LocationHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,12 +29,15 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @HiltViewModel
 class WeatherViewModel @Inject constructor(
+    private val locationHelper: LocationHelper,
     private val getWeatherUseCase: GetWeatherUseCase,
-    private val getForecastUseCase: GetForecastUseCase
+    private val getForecastUseCase: GetForecastUseCase,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<WeatherUiState>(WeatherUiState.Loading)
@@ -39,12 +54,18 @@ class WeatherViewModel @Inject constructor(
 
     init {
         loadWeather("London") // Default on launch
+
+        refreshForecast("London", apiKey = BuildConfig.OPEN_WEATHER_API_KEY)
+//        loadWeatherForCurrentLocation()
     }
 
 
     fun onSearchQueryChange(query: String) {
         _searchQuery.value = query
     }
+
+
+
 
     fun loadWeather(city: String) {
         viewModelScope.launch {
@@ -66,6 +87,34 @@ class WeatherViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun loadWeatherForCurrentLocation() {
+        viewModelScope.launch {
+            val location = locationHelper.getCurrentLocation()
+            if (location != null) {
+                getWeatherUseCase("${location.latitude},${location.longitude}").collect { result ->
+                    _uiState.value = when (result) {
+                        is Resource.Loading<*> -> WeatherUiState.Loading
+                        is Resource.Success<*> -> WeatherUiState.Success(result.data)
+                        else -> WeatherUiState.Error(result.toString())
+                    }
+                }
+            } else {
+                _uiState.value = WeatherUiState.Error("Unable to fetch location")
+                println("oam error unable to fetch")
+            }
+        }
+    }
+
+    fun refreshForecast(city: String, apiKey: String) {
+        val refreshRequest = OneTimeWorkRequestBuilder<WeatherSyncWorker>()
+            .setInputData(
+                workDataOf("city" to city, "apiKey" to apiKey)
+            )
+            .build()
+
+        WorkManager.getInstance(context).enqueue(refreshRequest)
     }
 
 

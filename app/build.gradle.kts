@@ -101,7 +101,7 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.52")
     kapt(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
-    implementation(libs.lifecycle.viewmodel.compose)
+//    implementation(libs.lifecycle.viewmodel.compose)
 
     // Logging (optional for debugging)
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
@@ -113,6 +113,21 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     kapt("androidx.room:room-compiler:2.7.2")
     implementation(libs.androidx.room.ktx) // for coroutines/Flow support
+
+    //Work manager
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    implementation ("androidx.hilt:hilt-work:1.2.0")
+    kapt ("androidx.hilt:hilt-compiler:1.2.0")
+
+    //SwipeToRefresh
+//    implementation ("com.google.accompanist:accompanist-swiperefresh:0.36.0")
+    implementation ("androidx.compose.material:material:1.4.0")
+
+    //Location permission
+    implementation ("com.google.accompanist:accompanist-permissions:0.35.0-alpha")
+    implementation ("com.google.android.gms:play-services-location:21.0.1")
+
 
     // Testing
     testImplementation("junit:junit:4.13.2")
